@@ -59,7 +59,7 @@ func (h *userHandler) Login(c *gin.Context) {
 	formatter := user.FormatUser(userLogin, "randomStringToken")
 
 	if err != nil {
-		response := helper.APIResponse("Login failed", http.StatusBadRequest, false, nil)
+		response := helper.APIResponse("Login failed", http.StatusUnauthorized, false, nil)
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}

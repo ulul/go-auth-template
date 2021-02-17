@@ -33,14 +33,6 @@ func main() {
 
 	userRepository := user.NewRepository(db)
 	userService := user.NewService(userRepository)
-
-	// userInput := user.RegisterUserInput{}
-	// userInput.Name = "Name"
-	// userInput.Email = "example@gmail.com"
-	// userInput.Ocupation = "BusinessMan"
-	// userInput.Password = "password"
-	// userService.RegisterUser(userInput)
-
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.Default()
@@ -48,6 +40,7 @@ func main() {
 
 	api.GET("/", welcome)
 	api.POST("/register", userHandler.RegisterUser)
+	api.POST("/login", userHandler.Login)
 
 	router.Run(":8081")
 

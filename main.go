@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crownfunding/auth"
 	"crownfunding/handler"
 	"crownfunding/user"
 	"log"
@@ -33,7 +34,8 @@ func main() {
 
 	userRepository := user.NewRepository(db)
 	userService := user.NewService(userRepository)
-	userHandler := handler.NewUserHandler(userService)
+	authService := auth.NewService()
+	userHandler := handler.NewUserHandler(userService, authService)
 
 	router := gin.Default()
 	api := router.Group("/api/v1")
@@ -42,6 +44,7 @@ func main() {
 	api.POST("/register", userHandler.RegisterUser)
 	api.POST("/login", userHandler.Login)
 	api.POST("/email-checker", userHandler.CheckAvailabilityEmail)
+	api.POST("/upload-avatar", userHandler.UploadAvatar)
 
 	router.Run(":8081")
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crownfunding/auth"
 	"crownfunding/helper"
 	"crownfunding/user"
 	"net/http"
@@ -10,11 +11,12 @@ import (
 
 type userHandler struct {
 	userService user.Service
+	authService auth.Service
 }
 
 // NewUserHandler service
-func NewUserHandler(userService user.Service) *userHandler {
-	return &userHandler{userService}
+func NewUserHandler(userService user.Service, authService auth.Service) *userHandler {
+	return &userHandler{userService, authService}
 }
 
 func (h *userHandler) RegisterUser(c *gin.Context) {
@@ -31,7 +33,14 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 
 	newUser, err := h.userService.RegisterUser(input)
 
-	formatter := user.FormatUser(newUser, "randomStringToken")
+	token, err := h.authService.GenerateToken(newUser.ID)
+
+	if err != nil {
+		response := helper.APIResponse("Generate token failed", http.StatusBadRequest, false, nil)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+	formatter := user.FormatUser(newUser, token)
 
 	if err != nil {
 		response := helper.APIResponse("Register account failed", http.StatusBadRequest, false, nil)
@@ -56,7 +65,16 @@ func (h *userHandler) Login(c *gin.Context) {
 		return
 	}
 	userLogin, err := h.userService.Login(input)
-	formatter := user.FormatUser(userLogin, "randomStringToken")
+
+	token, err := h.authService.GenerateToken(userLogin.ID)
+
+	if err != nil {
+		response := helper.APIResponse("Generate token failed", http.StatusBadRequest, false, nil)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	formatter := user.FormatUser(userLogin, token)
 
 	if err != nil {
 		response := helper.APIResponse("Login failed", http.StatusUnauthorized, false, nil)
@@ -101,6 +119,43 @@ func (h *userHandler) CheckAvailabilityEmail(c *gin.Context) {
 	}
 
 	response := helper.APIResponse(metaMessage, http.StatusOK, true, data)
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *userHandler) UploadAvatar(c *gin.Context) {
+	// c.SaveUploadedFile()
+
+	file, err := c.FormFile("avatar")
+
+	if err != nil {
+		data := gin.H{"is_uploaded": false}
+		response := helper.APIResponse("Failed to upload avatar", http.StatusUnprocessableEntity, false, data)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	avatarPath := "avatar/" + file.Filename
+	err = c.SaveUploadedFile(file, avatarPath)
+
+	if err != nil {
+		data := gin.H{"is_uploaded": false}
+		response := helper.APIResponse("Failed to upload avatar", http.StatusUnprocessableEntity, false, data)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	userID := 6 //
+
+	userWithAvatar, err := h.userService.SaveAvatar(userID, avatarPath)
+	if err != nil {
+		data := gin.H{"is_uploaded": false}
+		response := helper.APIResponse("Failed to upload avatar", http.StatusUnprocessableEntity, false, data)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.APIResponse("Avatar uploaded", http.StatusOK, true, userWithAvatar)
 
 	c.JSON(http.StatusOK, response)
 }

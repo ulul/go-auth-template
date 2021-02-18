@@ -124,7 +124,6 @@ func (h *userHandler) CheckAvailabilityEmail(c *gin.Context) {
 }
 
 func (h *userHandler) UploadAvatar(c *gin.Context) {
-	// c.SaveUploadedFile()
 
 	file, err := c.FormFile("avatar")
 
@@ -145,7 +144,8 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	userID := 6 //
+	currentUser := c.MustGet("currentUser").(user.User)
+	userID := currentUser.ID
 
 	userWithAvatar, err := h.userService.SaveAvatar(userID, avatarPath)
 	if err != nil {

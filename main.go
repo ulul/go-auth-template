@@ -3,14 +3,12 @@ package main
 import (
 	"crownfunding/auth"
 	"crownfunding/handler"
-	"crownfunding/helper"
+	"crownfunding/middleware"
 	"crownfunding/user"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
@@ -47,7 +45,7 @@ func main() {
 	api.POST("/register", userHandler.RegisterUser)
 	api.POST("/login", userHandler.Login)
 	api.POST("/email-checker", userHandler.CheckAvailabilityEmail)
-	api.POST("/upload-avatar", authMiddleware(authService, userService), userHandler.UploadAvatar)
+	api.POST("/upload-avatar", middleware.AuthMiddleware(authService, userService), userHandler.UploadAvatar)
 
 	router.Run(":8081")
 
@@ -57,51 +55,4 @@ func welcome(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Welcom to api",
 	})
-}
-
-func authMiddleware(authService auth.Service, userService user.Service) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-
-		if !strings.Contains(authHeader, "Bearer") {
-			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, false, nil)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
-			return
-		}
-
-		arrayToken := strings.Split(authHeader, " ")
-		tokenString := ""
-
-		if len(arrayToken) == 2 {
-			tokenString = arrayToken[1]
-		}
-
-		token, err := authService.ValidateToken(tokenString)
-
-		if err != nil {
-			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, false, nil)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
-			return
-		}
-
-		claim, valid := token.Claims.(jwt.MapClaims)
-
-		if !valid || !token.Valid {
-			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, false, nil)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
-			return
-		}
-
-		userID := int(claim["user_id"].(float64))
-
-		user, err := userService.GetUserByID(userID)
-
-		if err != nil {
-			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, false, nil)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
-			return
-		}
-
-		c.Set("currentUser", user)
-	}
 }

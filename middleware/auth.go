@@ -55,6 +55,12 @@ func AuthMiddleware(authService auth.Service, userService user.Service) gin.Hand
 			return
 		}
 
+		if user.ID == 0 {
+			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, false, nil)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		c.Set("currentUser", user)
 	}
 }
